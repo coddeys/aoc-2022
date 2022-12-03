@@ -1,7 +1,8 @@
 module Lib (solveDay1, solveDay2) where
 
+import Control.Applicative
 import Data.Bifunctor
-import Data.Bitraversable (bitraverse)
+import Data.Bitraversable
 import Data.Maybe (catMaybes)
 import Day1 (calcMostCalories)
 
@@ -65,7 +66,9 @@ shapes :: [String] -> [(Shape, Shape)]
 shapes xs = catMaybes $ map shape xs
 
 shape :: String -> Maybe (Shape, Shape)
-shape (x : ' ' : y : []) = bitraverse firstShape secondShape (x, y)
+shape (x : ' ' : y : []) = bisequenceA (fs, secondShape fs y)
+  where
+    fs = firstShape x
 shape _ = Nothing
 
 firstShape :: Char -> Maybe Shape
@@ -74,8 +77,25 @@ firstShape 'B' = Just Paper
 firstShape 'C' = Just Scissors
 firstShape _ = Nothing
 
-secondShape :: Char -> Maybe Shape
-secondShape 'X' = Just Rock
-secondShape 'Y' = Just Paper
-secondShape 'Z' = Just Scissors
-secondShape _ = Nothing
+secondShape :: Maybe Shape -> Char -> Maybe Shape
+secondShape fs c =
+  liftA2 toShape fs result
+  where
+    result = secondColumn c
+
+secondColumn :: Char -> Maybe Result
+secondColumn 'X' = Just First
+secondColumn 'Y' = Just Draw
+secondColumn 'Z' = Just Second
+secondColumn _ = Nothing
+
+toShape :: Shape -> Result -> Shape
+toShape Rock Draw = Rock
+toShape Rock Second = Paper
+toShape Rock First = Scissors
+toShape Paper First = Rock
+toShape Paper Draw = Paper
+toShape Paper Second = Scissors
+toShape Scissors Second = Rock
+toShape Scissors First = Paper
+toShape Scissors Draw = Scissors
